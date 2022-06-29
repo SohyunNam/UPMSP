@@ -9,11 +9,14 @@ import torch.nn as nn
 import torch.nn.functional as F
 import torch.optim as optim
 
+
 # Hyperparameters
-learning_rate = 0.0005
-gamma = 0.8
+learning_rate = 5e-8
+gamma = 0.99
 buffer_limit = 100000
 batch_size = 32
+
+device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 
 class ReplayBuffer():
@@ -35,9 +38,9 @@ class ReplayBuffer():
             s_prime_lst.append(s_prime)
             done_mask_lst.append([done_mask])
 
-        return torch.tensor(s_lst, dtype=torch.float), torch.tensor(a_lst), \
-               torch.tensor(r_lst), torch.tensor(s_prime_lst, dtype=torch.float), \
-               torch.tensor(done_mask_lst)
+        return torch.tensor(s_lst, dtype=torch.float).to(device), torch.tensor(a_lst).to(device), \
+               torch.tensor(r_lst).to(device), torch.tensor(s_prime_lst, dtype=torch.float).to(device), \
+               torch.tensor(done_mask_lst).to(device)
 
     def size(self):
         return len(self.buffer)
@@ -60,14 +63,19 @@ class Qnet(nn.Module):
         x = self.fc4(x)
         return x
 
-    def sample_action(self, obs, epsilon):
+    def sample_action(self, obs, epsilon, available_out):
         out = self.forward(obs)
-        out = out.detach().numpy()
+        out = out.cpu().detach().numpy()
         coin = np.random.uniform(0, 1)
         if coin < epsilon:
-            return np.random.randint(low=0, high=self.action_size)
+            action = np.random.choice(available_out)
         else:
-            return np.argmax(out)
+            mask = np.ones(self.action_size)
+            mask[available_out] = 0.0
+            out_masked = out - 1e8 * mask
+            action = np.argmax(out_masked)
+
+        return action
 
 
 def train(q, q_target, memory, optimizer):
@@ -77,8 +85,10 @@ def train(q, q_target, memory, optimizer):
     q_a = q_out.gather(1, a)
     max_q_prime = q_target(s_prime).max(1)[0].unsqueeze(1)
     target = r + gamma * max_q_prime * done_mask
-    loss = F.smooth_l1_loss(q_a, target)
+    loss = F.smooth_l1_loss(q_a, target.float())
 
     optimizer.zero_grad()
     loss.backward()
     optimizer.step()
+
+    return loss

@@ -1,4 +1,4 @@
-import os
+import os, copy
 import pandas as pd
 from dqn import *
 from environment.env import UPMSP
@@ -44,16 +44,21 @@ if __name__ == "__main__":
 
     state_output = list()
     for e in range(episode, episode + num_episode + 1):
+        state_list = list()
+        print("#" * 20, "Episode {0}".format(e), "#" * 20)
         env.e = e
         done = False
         step = 0
         state = env.reset()
+
+        state_list.append(copy.deepcopy(state))
+
         r = list()
         loss = 0
         num_update = 0
 
         while not done:
-            epsilon = max(0.01, 0.1-0.01*(e/200))
+            epsilon = 1.0
 
             step += 1
 
@@ -67,13 +72,10 @@ if __name__ == "__main__":
 
             # 환경과 연결
             next_state, reward, done = env.step(action)
+            state_list.append(copy.deepcopy(next_state))
             r.append(reward)
 
             memory.put((state, action, reward, next_state, done))
-
-            if memory.size() > 2000:
-                loss += train(q, q_target, memory, optimizer)
-                num_update += 1
 
             state = next_state
 
@@ -89,7 +91,10 @@ if __name__ == "__main__":
                     print('save model...')
 
                 break
-        writer.add_scalar("Reward", sum(r), e)
-        avg_loss = loss/num_update if num_update > 0 else 0
-        writer.add_scalar("Loss", avg_loss, e)
-    writer.close()
+
+        idx_list = list(np.random.choice([i for i in range(len(state_list))], 5))
+        for idx in idx_list:
+            state_output.append(state_list[idx])
+
+    state_output = np.array(state_output)
+    np.save("validation_set", state_output)
