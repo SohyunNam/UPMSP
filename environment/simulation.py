@@ -51,7 +51,9 @@ class Source:
             self.monitor.record(time=self.env.now, jobtype=job.job_type, event="Put in Routing Class", job=job.name,
                                 queue=len(self.routing.queue.items))
             self.routing.created += 1
-            self.env.process(self.routing.run(location="Source"))
+
+            if not self.routing.waiting.triggered:
+                self.routing.waiting.succeed()
 
     def _cal_iat(self):
         total_p_j = np.sum(self.total_p_j)
@@ -78,6 +80,13 @@ class Process:
 
     def run(self):
         while True:
+            if len(self.queue.items) == 0 and self.routing.created == self.sink.end_num:
+                break
+            else:
+                self.monitor.record(time=self.env.now, event="Request Routing from Machine", machine=self.name,
+                                    queue=len(self.routing.queue.items))
+                yield self.env.process(self.routing.run(location=self.name))
+
             self.job = yield self.queue.get()
             self.idle = False
             self.monitor.record(time=self.env.now, jobtype=self.job.job_type, event="Work Start", job=self.job.name,
@@ -93,12 +102,7 @@ class Process:
             self.idle = True
             self.job = None
 
-            if len(self.routing.queue.items) > 0:
-                self.monitor.record(time=self.env.now, event="Request Routing for Job", machine=self.name,
-                                    queue=len(self.routing.queue.items))
-                yield self.env.process(self.routing.run(location=self.name))
-            elif (len(self.queue.items) == 0) and (self.routing.created == self.sink.end_num):
-                break
+
 
 
 class Routing:
@@ -119,69 +123,44 @@ class Routing:
 
         self.idle = False
         self.job = None
-        self.for_what = None
 
-        self.mapping = {0: "WSPT", 1: "WMDD", 2: "ATC", 3: "WCOVERT"}
+        self.mapping = {0: "No Job", 1: "WSPT", 2: "WMDD", 3: "ATC", 4: "WCOVERT"}
 
-    def run(self, location="Source"):
-        if location == "Source":  # job -> machine 선택
-            self.for_what = "Job"
-            machine_idle = [machine.idle for machine in self.process_dict.values()]
-            if any(machine_idle):
+    def run(self, location=None):
+        while True:
+            if len(self.queue.items) == 0:
+                yield self.waiting
+            else:
                 self.indicator = True
+                # routing_rule_number = np.random.randint(low=0, high=4)
+                # routing_rule = self.mapping[routing_rule_number]
                 self.decision = self.env.event()
                 routing_rule = yield self.decision
                 self.decision = None
                 self.for_what = None
 
-                job = yield self.queue.get()
-                self.monitor.record(time=self.env.now, jobtype=job.job_type, event="Routing Start", job=job.name,
-                                    memo="{0},  machine 선택".format(routing_rule))
-                next_machine = None
-                if routing_rule == "WSPT":
-                    next_machine = yield self.env.process(self.WSPT(location=location, idle=machine_idle, job=job))
-                elif routing_rule == "WMDD":
-                    next_machine = yield self.env.process(self.WMDD(location=location, idle=machine_idle, job=job))
-                elif routing_rule == "ATC":
-                    next_machine = yield self.env.process(self.ATC(location=location, idle=machine_idle, job=job))
-                elif routing_rule == "WCOVERT":
-                    next_machine = yield self.env.process(self.WCOVERT(location=location, idle=machine_idle, job=job))
+                if routing_rule != "No Job":
+                    self.monitor.record(time=self.env.now, event="Routing Start", machine=location,
+                                        memo="{0} Job 선택".format(routing_rule))
+                    next_job = None
+                    if routing_rule == "WSPT":
+                        next_job = yield self.env.process(self.WSPT(location=location))
+                    elif routing_rule == "WMDD":
+                        next_job = yield self.env.process(self.WMDD(location=location))
+                    elif routing_rule == "ATC":
+                        next_job = yield self.env.process(self.ATC(location=location))
+                    elif routing_rule == "WCOVERT":
+                        next_job = yield self.env.process(self.WCOVERT(location=location))
 
-                self.monitor.record(time=self.env.now, jobtype=job.job_type, event="Routing Finish", job=job.name,
-                                    machine="Machine {0}".format(next_machine))
+                    self.monitor.record(time=self.env.now, jobtype=next_job.job_type, event="Routing Finish",
+                                        job=next_job.name, machine=location)
 
-                self.process_dict["Machine {0}".format(next_machine)].queue.put(job)
+                    self.process_dict[location].queue.put(next_job)
+                    break
 
-        else:  # machine -> job 선택
-            self.for_what = "Machine"
-            self.indicator = True
-            # routing_rule_number = np.random.randint(low=0, high=4)
-            # routing_rule = self.mapping[routing_rule_number]
-            self.decision = self.env.event()
-            routing_rule = yield self.decision
-            self.decision = None
-            self.for_what = None
-
-            if routing_rule != "No Job":
-                self.monitor.record(time=self.env.now, event="Routing Start", machine=location,
-                                    memo="{0} Job 선택".format(routing_rule))
-                next_job = None
-                if routing_rule == "WSPT":
-                    next_job = yield self.env.process(self.WSPT(location=location))
-                elif routing_rule == "WMDD":
-                    next_job = yield self.env.process(self.WMDD(location=location))
-                elif routing_rule == "ATC":
-                    next_job = yield self.env.process(self.ATC(location=location))
-                elif routing_rule == "WCOVERT":
-                    next_job = yield self.env.process(self.WCOVERT(location=location))
-
-                self.monitor.record(time=self.env.now, jobtype=next_job.job_type, event="Routing Finish",
-                                    job=next_job.name, machine=location)
-
-                self.process_dict[location].queue.put(next_job)
-
-            elif routing_rule == "No Job":
-                self.monitor.record(time=self.env.now, event="Select No Job", machine=location)
+                elif routing_rule == "No Job":
+                    self.monitor.record(time=self.env.now, event="Select No Job", machine=location)
+                    break
 
     def WSPT(self, location="Source", idle=None, job=None):
         if location == "Source":  # job -> machine 선택 => output : machine index

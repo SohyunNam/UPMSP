@@ -57,13 +57,7 @@ if __name__ == "__main__":
 
             step += 1
 
-            available_action = None
-            if env.routing.for_what == "Job":
-                available_action = [1, 2, 3, 4]
-            elif env.routing.for_what == "Machine":
-                available_action = [i for i in range(action_size)]
-
-            action = q.sample_action(torch.from_numpy(state).float(), epsilon, available_out=available_action)
+            action = q.sample_action(torch.from_numpy(state).float(), epsilon)
 
             # 환경과 연결
             next_state, reward, done = env.step(action)

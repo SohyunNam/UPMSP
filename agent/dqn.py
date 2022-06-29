@@ -63,17 +63,14 @@ class Qnet(nn.Module):
         x = self.fc4(x)
         return x
 
-    def sample_action(self, obs, epsilon, available_out):
+    def sample_action(self, obs, epsilon):
         out = self.forward(obs)
         out = out.cpu().detach().numpy()
         coin = np.random.uniform(0, 1)
         if coin < epsilon:
-            action = np.random.choice(available_out)
+            action = np.random.choice([i for i in range(self.action_size)])
         else:
-            mask = np.ones(self.action_size)
-            mask[available_out] = 0.0
-            out_masked = out - 1e8 * mask
-            action = np.argmax(out_masked)
+            action = np.argmax(out)
 
         return action
 

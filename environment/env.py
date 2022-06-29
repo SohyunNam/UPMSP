@@ -1,7 +1,3 @@
-import simpy, copy
-import pandas as pd
-import numpy as np
-from collections import OrderedDict
 from environment.simulation import *
 
 
@@ -31,9 +27,9 @@ class UPMSP:
     def step(self, action):
         done = False
         self.previous_time_step = self.sim_env.now
-        selected_machine = self.mapping[action]
+        routing_rule = self.mapping[action]
 
-        self.routing.decision.succeed(selected_machine)
+        self.routing.decision.succeed(routing_rule)
         self.routing.indicator = False
 
         while True:
