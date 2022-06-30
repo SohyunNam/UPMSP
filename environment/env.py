@@ -69,6 +69,7 @@ class UPMSP:
             # Check whether there is any decision time step
             if self.routing.indicator:
                 break
+
             self.sim_env.step()
 
         return self._get_state()
@@ -76,7 +77,7 @@ class UPMSP:
     def _modeling(self):
         env = simpy.Environment()
 
-        monitor = Monitor(self.log_dir + 'log_%d.csv'% self.e)
+        monitor = Monitor(self.log_dir + '/log_%d.csv'% self.e)
         # monitor = Monitor("C:/Users/sohyon/PycharmProjects/UPJSP_SH/environment/result/log_{0}.csv".format(self.e))
         process_dict = dict()
         source_dict = dict()
@@ -94,7 +95,7 @@ class UPMSP:
             jt_dict["JobType {0}".format(jt)].append(
                 Job("Job {0}-{1}".format(jt, i), self.p_ij[jt], job_type=jt))
 
-        sink = Sink(env, monitor, jt_dict, self.num_job, source_dict)
+        sink = Sink(env, monitor, jt_dict, self.num_job, source_dict, self.weight)
 
         for jt_name in jt_dict.keys():
             source_dict["Source {0}".format(int(jt_name[-1]))] = Source("Source {0}".format(int(jt_name[-1])), env,

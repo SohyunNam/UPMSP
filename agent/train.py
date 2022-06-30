@@ -16,7 +16,7 @@ if __name__ == "__main__":
     score_avg = 0
 
     state_size = 104
-    action_size = 5  # Select No action 포함
+    action_size = 4  # Select No action 포함
 
     log_path = '../result/model/dqn'
     if not os.path.exists(log_path):
@@ -49,7 +49,6 @@ if __name__ == "__main__":
     moving_average = list()
 
     for e in range(episode, episode + num_episode + 1):
-        env.e = e
         done = False
         step = 0
         state = env.reset()
@@ -62,7 +61,7 @@ if __name__ == "__main__":
 
             step += 1
 
-            action = q.sample_action(torch.from_numpy(state).float(), epsilon)
+            action = q.sample_action(torch.from_numpy(state).float().to(device), epsilon)
 
             # 환경과 연결
             next_state, reward, done = env.step(action)
@@ -88,7 +87,15 @@ if __name__ == "__main__":
                     print('save model...')
 
                 break
-        writer.add_scalar("Reward", sum(r), e)
-        avg_loss = loss/num_update if num_update > 0 else 0
-        writer.add_scalar("Loss", avg_loss, e)
+
+        q.eval()
+        validation_state = np.load('validation_set.npy')
+        out = q(torch.from_numpy(validation_state).float().to(device)).cpu().detach().numpy()
+        out = np.max(out, axis=1)
+        avg_q = np.mean(out)
+
+        writer.add_scalar("Reward/Reward", sum(r), e)
+        writer.add_scalar("Performance/Q-Value", avg_q, e)
+        writer.add_scalar("Performance/Tardiness", env.monitor.tardiness / env.num_job, e)
+
     writer.close()

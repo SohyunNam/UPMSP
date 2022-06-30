@@ -2,8 +2,10 @@ import simpy, os, random, copy
 import pandas as pd
 import numpy as np
 
+from collections import OrderedDict
 
-class Job(object):
+
+class Job:
     def __init__(self, name, time, job_type=None, due_date=None):
         # 해당 job의 이름
         self.name = name
@@ -51,9 +53,7 @@ class Source:
             self.monitor.record(time=self.env.now, jobtype=job.job_type, event="Put in Routing Class", job=job.name,
                                 queue=len(self.routing.queue.items))
             self.routing.created += 1
-
-            if not self.routing.waiting.triggered:
-                self.routing.waiting.succeed()
+            self.env.process(self.routing.run(location="Source"))
 
     def _cal_iat(self):
         total_p_j = np.sum(self.total_p_j)
@@ -80,13 +80,6 @@ class Process:
 
     def run(self):
         while True:
-            if len(self.queue.items) == 0 and self.routing.created == self.sink.end_num:
-                break
-            else:
-                self.monitor.record(time=self.env.now, event="Request Routing from Machine", machine=self.name,
-                                    queue=len(self.routing.queue.items))
-                yield self.env.process(self.routing.run(location=self.name))
-
             self.job = yield self.queue.get()
             self.idle = False
             self.monitor.record(time=self.env.now, jobtype=self.job.job_type, event="Work Start", job=self.job.name,
@@ -102,7 +95,12 @@ class Process:
             self.idle = True
             self.job = None
 
-
+            if len(self.routing.queue.items) > 0:
+                self.monitor.record(time=self.env.now, event="Request Routing for Job", machine=self.name,
+                                    queue=len(self.routing.queue.items))
+                yield self.env.process(self.routing.run(location=self.name))
+            elif (len(self.queue.items) == 0) and (self.routing.created == self.sink.end_num):
+                break
 
 
 class Routing:
@@ -124,43 +122,60 @@ class Routing:
         self.idle = False
         self.job = None
 
-        self.mapping = {0: "No Job", 1: "WSPT", 2: "WMDD", 3: "ATC", 4: "WCOVERT"}
+        self.mapping = {0: "WSPT", 1: "WMDD", 2: "ATC", 3: "WCOVERT"}
 
-    def run(self, location=None):
-        while True:
-            if len(self.queue.items) == 0:
-                yield self.waiting
-            else:
+    def run(self, location="Source"):
+        if location == "Source":  # job -> machine 선택
+            machine_idle = [machine.idle for machine in self.process_dict.values()]
+            if any(machine_idle):
+                job = yield self.queue.get()
+
+                self.indicator = True
+                self.decision = self.env.event()
+                routing_rule = yield self.decision
+                self.decision = None
+                self.monitor.record(time=self.env.now, jobtype=job.job_type, event="Routing Start", job=job.name,
+                                    memo="{0},  machine 선택".format(routing_rule))
+                # routing_rule_number = np.random.randint(low=0, high=4)
+                # routing_rule = self.mapping[routing_rule_number]
+
+                if routing_rule == "WSPT":
+                    next_machine = yield self.env.process(self.WSPT(location=location, idle=machine_idle, job=job))
+                elif routing_rule == "WMDD":
+                    next_machine = yield self.env.process(self.WMDD(location=location, idle=machine_idle, job=job))
+                elif routing_rule == "ATC":
+                    next_machine = yield self.env.process(self.ATC(location=location, idle=machine_idle, job=job))
+                else:
+                    next_machine = yield self.env.process(self.WCOVERT(location=location, idle=machine_idle, job=job))
+
+                self.monitor.record(time=self.env.now, jobtype=job.job_type, event="Routing Finish", job=job.name,
+                                    machine="Machine {0}".format(next_machine))
+
+                self.process_dict["Machine {0}".format(next_machine)].queue.put(job)
+
+        else:  # machine -> job 선택
+            if len(self.queue.items) > 0:
                 self.indicator = True
                 # routing_rule_number = np.random.randint(low=0, high=4)
                 # routing_rule = self.mapping[routing_rule_number]
                 self.decision = self.env.event()
                 routing_rule = yield self.decision
                 self.decision = None
-                self.for_what = None
 
-                if routing_rule != "No Job":
-                    self.monitor.record(time=self.env.now, event="Routing Start", machine=location,
-                                        memo="{0} Job 선택".format(routing_rule))
-                    next_job = None
-                    if routing_rule == "WSPT":
-                        next_job = yield self.env.process(self.WSPT(location=location))
-                    elif routing_rule == "WMDD":
-                        next_job = yield self.env.process(self.WMDD(location=location))
-                    elif routing_rule == "ATC":
-                        next_job = yield self.env.process(self.ATC(location=location))
-                    elif routing_rule == "WCOVERT":
-                        next_job = yield self.env.process(self.WCOVERT(location=location))
+                self.monitor.record(time=self.env.now, event="Routing Start", machine=location, memo="{0} Job 선택".format(routing_rule))
+                if routing_rule == "WSPT":
+                    next_job = yield self.env.process(self.WSPT(location=location))
+                elif routing_rule == "WMDD":
+                    next_job = yield self.env.process(self.WMDD(location=location))
+                elif routing_rule == "ATC":
+                    next_job = yield self.env.process(self.ATC(location=location))
+                else:
+                    next_job = yield self.env.process(self.WCOVERT(location=location))
 
-                    self.monitor.record(time=self.env.now, jobtype=next_job.job_type, event="Routing Finish",
-                                        job=next_job.name, machine=location)
+                self.monitor.record(time=self.env.now, jobtype=next_job.job_type, event="Routing Finish",
+                                    job=next_job.name, machine=location)
 
-                    self.process_dict[location].queue.put(next_job)
-                    break
-
-                elif routing_rule == "No Job":
-                    self.monitor.record(time=self.env.now, event="Select No Job", machine=location)
-                    break
+                self.process_dict[location].queue.put(next_job)
 
     def WSPT(self, location="Source", idle=None, job=None):
         if location == "Source":  # job -> machine 선택 => output : machine index
@@ -232,7 +247,7 @@ class Routing:
             max_wa = -1
             max_machine_idx = None
             jt = job.job_type
-            non_processed_job = [non_job for non_job in self.queue.items if non_job.job_type==jt]
+            non_processed_job = self.source_dict["Source {0}".format(jt)].jobs
             temp = list()
             for idx in range(len(idle)):
                 if idle[idx]:
@@ -250,8 +265,6 @@ class Routing:
             if len(temp) > 0:
                 max_machine_idx = random.choice(temp)
 
-            self.monitor.record(time=self.env.now, jobtype=job.job_type, event="ATC Determined",
-                                machine=max_machine_idx)
             return max_machine_idx
 
         else:  # machine -> job 선택 => output : job
@@ -262,7 +275,7 @@ class Routing:
             temp = list()
             for job_q in job_list:
                 jt = job_q.job_type
-                non_processed_job = [non_job for non_job in self.queue.items if non_job.job_type==jt]
+                non_processed_job = self.source_dict["Source {0}".format(jt)].jobs
 
                 if len(non_processed_job) > 0:
                     p = np.average([non_job.processing_time[int(location[-1])] for non_job in non_processed_job])
@@ -279,8 +292,7 @@ class Routing:
                 max_job_name = random.choice(temp)
 
             next_job = yield self.queue.get(lambda x: x.name == max_job_name)
-            self.monitor.record(time=self.env.now, jobtype=next_job.job_type, event="ATC Determined",
-                                machine=location)
+
             return next_job
 
     def WCOVERT(self, location="Source", idle=None, job=None):
@@ -323,13 +335,14 @@ class Routing:
 
 
 class Sink:
-    def __init__(self, env, monitor, jt_dict, end_num, source_dict):
+    def __init__(self, env, monitor, jt_dict, end_num, source_dict, weight):
         self.env = env
         self.monitor = monitor
         self.jt_dict = jt_dict
         self.idle = False
         self.end_num = end_num
         self.source_dict = source_dict
+        self.weight = weight
 
         # JobType 별 작업이 종료된 Job의 수
         self.finished = {jt: 0 for jt in self.jt_dict.keys()}
@@ -350,6 +363,8 @@ class Sink:
                             memo=max(self.env.now - job.due_date, 0))
         self.job_list.append(job)
 
+        self.monitor.tardiness += self.weight[job.job_type] * min(0, job.due_date - self.env.now)
+
 
 class Monitor:
     def __init__(self, filepath):
@@ -362,6 +377,8 @@ class Monitor:
         self.memo = list()
 
         self.filepath = filepath
+
+        self.tardiness = 0
 
     def record(self, time=None, jobtype=None, event=None, job=None, machine=None, queue=None, memo=None):
         self.time.append(round(time, 2))
