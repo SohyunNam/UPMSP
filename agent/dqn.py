@@ -11,13 +11,11 @@ import torch.optim as optim
 
 
 # Hyperparameters
-learning_rate = 5e-8
 gamma = 0.99
 buffer_limit = 100000
 batch_size = 32
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-
 
 class ReplayBuffer():
     def __init__(self):

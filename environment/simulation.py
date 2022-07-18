@@ -139,13 +139,14 @@ class Routing:
                 # routing_rule_number = np.random.randint(low=0, high=4)
                 # routing_rule = self.mapping[routing_rule_number]
 
+                next_machine = None
                 if routing_rule == "WSPT":
                     next_machine = yield self.env.process(self.WSPT(location=location, idle=machine_idle, job=job))
                 elif routing_rule == "WMDD":
                     next_machine = yield self.env.process(self.WMDD(location=location, idle=machine_idle, job=job))
                 elif routing_rule == "ATC":
                     next_machine = yield self.env.process(self.ATC(location=location, idle=machine_idle, job=job))
-                else:
+                elif routing_rule == "WCOVERT":
                     next_machine = yield self.env.process(self.WCOVERT(location=location, idle=machine_idle, job=job))
 
                 self.monitor.record(time=self.env.now, jobtype=job.job_type, event="Routing Finish", job=job.name,
@@ -163,13 +164,14 @@ class Routing:
                 self.decision = None
 
                 self.monitor.record(time=self.env.now, event="Routing Start", machine=location, memo="{0} Job 선택".format(routing_rule))
+                next_job = None
                 if routing_rule == "WSPT":
                     next_job = yield self.env.process(self.WSPT(location=location))
                 elif routing_rule == "WMDD":
                     next_job = yield self.env.process(self.WMDD(location=location))
                 elif routing_rule == "ATC":
                     next_job = yield self.env.process(self.ATC(location=location))
-                else:
+                elif routing_rule == "WCOVERT":
                     next_job = yield self.env.process(self.WCOVERT(location=location))
 
                 self.monitor.record(time=self.env.now, jobtype=next_job.job_type, event="Routing Finish",
@@ -408,3 +410,5 @@ class Monitor:
         self.machine = list()
         self.queue = list()
         self.memo = list()
+
+        self.tardiness = 0

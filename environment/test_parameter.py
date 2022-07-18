@@ -23,17 +23,17 @@ if __name__ == "__main__":
 
     jobtypes = [i for i in range(10)]
 
-    rule = "ATC"
+    rule = "WCOVERT"
 
     event_tracer_path = "./test/{0}".format(rule)
     if not os.path.exists(event_tracer_path):
         os.makedirs(event_tracer_path)
-    h_list = [(i+1) * 0.5 for i in range(100)]
+    k_list = [(i+1) * 0.5 for i in range(100)]
 
-    opt_h = h_list[0]
+    opt_k = k_list[0]
     opt_mwt = 1e10
-    for h in h_list:
-        print(h)
+    for k in k_list:
+        print("K_t = ", k)
         for idx in range(100):
             env = simpy.Environment()
             pij_data, p_j_data, w_data = generating_data()
@@ -44,7 +44,7 @@ if __name__ == "__main__":
             source_dict = dict()
             jt_dict = dict()  # {"JobType 0" : [Job class(), ... ], ... }
             time_dict = dict()  # {"JobType 0" : [pij,...], ... }
-            routing = Routing(env, process_dict, source_dict, monitor, w_data, routing_rule=rule, h=h)
+            routing = Routing(env, process_dict, source_dict, monitor, w_data, routing_rule=rule, k_t=k)
             routing.reset()
 
             # 0에서 9까지 랜덤으로 배정
@@ -76,10 +76,10 @@ if __name__ == "__main__":
             tard_list.append(mean_wt)
             # print("Episode {0} | MWT = {1}".format(idx, mean_wt))
 
-        print("h = {0}, Total Mean Weighted Tardiness = {1}".format(h, np.mean(tard_list)))
+        print("k = {0}, Total Mean Weighted Tardiness = {1}".format(k, np.mean(tard_list)))
 
         if np.mean(tard_list) < opt_mwt:
-            opt_h = h
+            opt_k = k
             opt_mwt = np.mean(tard_list)
 
-    print("Optimal h for ATC = {0}, Mean Weighted Tardiness = {1}".format(opt_h, opt_mwt))
+    print("Optimal k for WCOVERT = {0}, Mean Weighted Tardiness = {1}".format(opt_k, opt_mwt))

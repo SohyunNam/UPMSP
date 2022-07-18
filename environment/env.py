@@ -1,5 +1,6 @@
 from environment.simulation import *
 
+np.random.seed(10)
 
 class UPMSP:
     def __init__(self, num_jt=10, num_j=1000, num_m=8, log_dir=None, K=1):
@@ -20,7 +21,7 @@ class UPMSP:
         self.e = 0
         self.time = 0
 
-        self.mapping = {0: "No Job", 1: "WSPT", 2: "WMDD", 3: "ATC", 4: "WCOVERT"}
+        self.mapping = {0: "WSPT", 1: "WMDD", 2: "ATC", 3: "WCOVERT"}
 
         self.sim_env, self.process_dict, self.source_dict, self.sink, self.routing, self.monitor = self._modeling()
 
@@ -58,7 +59,7 @@ class UPMSP:
 
     def reset(self):
         self.e += 1  # episode
-
+        self.p_ij, self.p_j, self.weight = self._generating_data()
         self.sim_env, self.process_dict, self.source_dict, self.sink, self.routing, self.monitor = self._modeling()
         self.done = False
         self.monitor.reset()
