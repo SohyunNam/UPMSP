@@ -108,16 +108,13 @@ class Process:
 
 
 class Routing:
-    def __init__(self, env, process_dict, source_dict, monitor, weight, routing_rule=None, h=0, k_t=0):
+    def __init__(self, env, process_dict, source_dict, monitor, weight, routing_rule=None):
         self.env = env
         self.process_dict = process_dict
         self.source_dict = source_dict
         self.monitor = monitor
         self.weight = weight
         self.routing_rule = routing_rule
-
-        self.h = h
-        self.k_t = k_t
 
         self.created = 0
 
@@ -242,7 +239,7 @@ class Routing:
             return next_job
 
     def ATC(self, location="Source", idle=None, job=None):
-        # h = 2.3
+        h = 14
         if location == "Source":  # job -> machine 선택 => output : machine index
             max_wa = -1
             max_machine_idx = None
@@ -254,7 +251,7 @@ class Routing:
                     if len(non_processed_job) > 0:
                         p = np.average([non_job.processing_time[idx] for non_job in non_processed_job])
                         wa = self.weight[jt] * np.exp(
-                            -(max(job.due_date - job.processing_time[idx] - self.env.now, 0) / (self.h * p))) / \
+                            -(max(job.due_date - job.processing_time[idx] - self.env.now, 0) / (h * p))) / \
                              job.processing_time[idx]
                         if wa > max_wa:
                             max_wa = wa
@@ -280,7 +277,7 @@ class Routing:
                 if len(non_processed_job) > 0:
                     p = np.average([non_job.processing_time[int(location[-1])] for non_job in non_processed_job])
                     wa = self.weight[jt] * np.exp(
-                        -(max(job_q.due_date - job_q.processing_time[int(location[-1])] - self.env.now, 0) / (self.h * p))) / \
+                        -(max(job_q.due_date - job_q.processing_time[int(location[-1])] - self.env.now, 0) / (h * p))) / \
                          job_q.processing_time[int(location[-1])]
                     if wa > max_wa:
                         max_wa = wa
@@ -296,7 +293,7 @@ class Routing:
             return next_job
 
     def WCOVERT(self, location="Source", idle=None, job=None):
-        # k_t = 2.3
+        k_t = 14
         if location == "Source":  # job -> machine 선택 => output : machine index
             max_wt = -1
             max_machine_idx = None
@@ -305,7 +302,7 @@ class Routing:
                 if idle[idx]:
                     p_ij = job.processing_time[idx]
                     temp_wt = max(job.due_date - p_ij - self.env.now, 0)
-                    temp_wt = temp_wt / (self.k_t * p_ij)
+                    temp_wt = temp_wt / (k_t * p_ij)
                     temp_wt = max(1 - temp_wt, 0)
                     wt = self.weight[jt] * temp_wt / p_ij
 
@@ -323,7 +320,7 @@ class Routing:
             for job_q in job_list:
                 jt = job_q.job_type
                 p_ij = job_q.processing_time[int(location[-1])]
-                wt = self.weight[jt] * np.exp(1 - (max(job_q.due_date - p_ij - self.env.now, 0) / (self.k_t * p_ij))) / p_ij
+                wt = self.weight[jt] * np.exp(1 - (max(job_q.due_date - p_ij - self.env.now, 0) / (k_t * p_ij))) / p_ij
 
                 if wt > max_wt:
                     max_wt = wt

@@ -1,6 +1,6 @@
 from environment.simulation import *
 
-np.random.seed(10)
+# np.random.seed(10)
 
 class UPMSP:
     def __init__(self, num_jt=10, num_j=1000, num_m=8, log_dir=None, K=1):
@@ -175,10 +175,9 @@ class UPMSP:
             jt = job.job_type
             w_j = self.weight[jt]
 
-            tardiness = job.due_date - job.completion_time
-            tardiness = tardiness if tardiness < 0 else 0
+            tardiness = min(job.due_date - job.completion_time, 0)
 
-            reward += w_j * tardiness
+            reward += w_j * tardiness * (1/1000)
 
         self.sink.job_list = list()
 

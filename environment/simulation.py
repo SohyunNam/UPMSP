@@ -4,7 +4,7 @@ import numpy as np
 
 from collections import OrderedDict
 
-
+# random.seed(10)
 class Job:
     def __init__(self, name, time, job_type=None, due_date=None):
         # 해당 job의 이름
@@ -244,7 +244,7 @@ class Routing:
             return next_job
 
     def ATC(self, location="Source", idle=None, job=None):
-        h = 2.3
+        h = 14.0
         if location == "Source":  # job -> machine 선택 => output : machine index
             max_wa = -1
             max_machine_idx = None
@@ -298,7 +298,7 @@ class Routing:
             return next_job
 
     def WCOVERT(self, location="Source", idle=None, job=None):
-        k_t = 2.3
+        k_t = 14.0
         if location == "Source":  # job -> machine 선택 => output : machine index
             max_wt = -1
             max_machine_idx = None
@@ -410,5 +410,7 @@ class Monitor:
         self.machine = list()
         self.queue = list()
         self.memo = list()
+
+        self.tardiness = 0
 
         self.tardiness = 0

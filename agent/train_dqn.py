@@ -4,7 +4,7 @@ from dqn import *
 from environment.env import UPMSP
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter('scalar/')
+writer = SummaryWriter('scalar/dqn')
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -26,7 +26,7 @@ if __name__ == "__main__":
     if not os.path.exists(event_path):
         os.makedirs(event_path)
 
-    load_model = True
+    load_model = False
 
     env = UPMSP(log_dir=event_path)
     q = Qnet(state_size, action_size).to(device)
@@ -34,7 +34,7 @@ if __name__ == "__main__":
     optimizer = optim.Adam(q.parameters(), lr=1e-5, eps=1e-06)
 
     if load_model:
-        ckpt = torch.load(log_path + "/episode4500.pt")
+        ckpt = torch.load(log_path + "/episode28000.pt")
         q.load_state_dict(ckpt["model_state_dict"])
         optimizer.load_state_dict(ckpt["optimizer_state_dict"])
         episode = ckpt["episode"]
@@ -97,5 +97,5 @@ if __name__ == "__main__":
         writer.add_scalar("Reward/Reward", sum(r), e)
         writer.add_scalar("Performance/Q-Value", avg_q, e)
         writer.add_scalar("Performance/Tardiness", env.monitor.tardiness / env.num_job, e)
-        print("Episode {0} | Reward = {1} | Q-Value = {2}".format(e, sum(r), avg_q))
+
     writer.close()
