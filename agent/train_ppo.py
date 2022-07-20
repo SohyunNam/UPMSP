@@ -1,10 +1,14 @@
+import vessl
+
 from ppo import *
 from environment.env import UPMSP
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter('scalar/ppo')
+writer = SummaryWriter('/output/scalar/ppo')
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
+
+vessl.init()
 
 if __name__ == "__main__":
     num_episode = 100000
@@ -15,15 +19,15 @@ if __name__ == "__main__":
     state_size = 104
     action_size = 4
 
-    log_path = '../result/model/ppo'
+    log_path = '/output/model/ppo'
     if not os.path.exists(log_path):
         os.makedirs(log_path)
 
-    event_path = '../environment/result/ppo'
+    event_path = '/output/event/ppo'
     if not os.path.exists(event_path):
         os.makedirs(event_path)
 
-    load_model = True
+    load_model = False
     env = UPMSP(log_dir=event_path)
 
     model = PPO(state_size, action_size).to(device)
@@ -56,7 +60,6 @@ if __name__ == "__main__":
                 r_epi += reward
                 if done:
                     # print("episode: %d | reward: %.4f" % (e, r_epi))
-                    # vessl.log(step=e, payload={'reward': r_epi})
 
                     if e % 50 == 0:
                         torch.save({"epoch": e,
@@ -69,8 +72,9 @@ if __name__ == "__main__":
                     break
 
             model.train_net()
-        print(
-            "episode: %d | reward: %.4f | Setup: %.4f" % (e, r_epi, env.monitor.tardiness / env.num_job))
+        vessl.log(step=e, payload={'reward': r_epi})
+        vessl.log(step=e, payload={'mean weighted tardiness' : env.monitor.tardiness / env.num_job})
+        print("episode: %d | reward: %.4f | tardiness: %.4f" % (e, r_epi, env.monitor.tardiness / env.num_job))
 
         writer.add_scalar("Reward/Reward", r_epi, e)
         # writer.add_scalar("Performance/Q-Value", avg_q, e)

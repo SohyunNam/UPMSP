@@ -10,21 +10,16 @@ from torch.distributions import Categorical
 # from environment.data import *
 from environment.env import *
 
-from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter('scalar/ppo')
-
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 # vessl.init()
 
 # Hyperparameters
-learning_rate = 0.0005
+learning_rate = 0.00001
 gamma = 0.98
 lmbda = 0.95
-eps_clip = 0.2
+eps_clip = 0.1
 K_epoch = 5
-T_horizon = 50
-
-device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
+T_horizon = 100
 
 class PPO(nn.Module):
     def __init__(self, state_dim, action_dim):
