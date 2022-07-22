@@ -94,7 +94,7 @@ if __name__ == "__main__":
                 break
 
         q.eval()
-        validation_state = np.load('validation_set.npy')
+        validation_state = np.load('validation_set2.npy')
         out = q(torch.from_numpy(validation_state).float().to(device)).cpu().detach().numpy()
         out = np.max(out, axis=1)
         avg_q = np.mean(out)
