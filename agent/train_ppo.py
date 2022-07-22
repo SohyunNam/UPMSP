@@ -1,7 +1,7 @@
 import vessl
 
 from ppo import *
-from environment.env import UPMSP
+from environment.env2 import UPMSP
 
 from torch.utils.tensorboard import SummaryWriter
 writer = SummaryWriter('/output/scalar/ppo')
@@ -16,7 +16,7 @@ if __name__ == "__main__":
 
     score_avg = 0
 
-    state_size = 104
+    state_size = 22
     action_size = 4
 
     log_path = '/output/model/ppo'
@@ -72,12 +72,12 @@ if __name__ == "__main__":
                     break
 
             model.train_net()
-        vessl.log(step=e, payload={'reward': r_epi})
-        vessl.log(step=e, payload={'mean weighted tardiness' : env.monitor.tardiness / env.num_job})
+        vessl.log(step=e, payload={'reward': r_epi, 'mean weighted tardiness': env.monitor.tardiness/env.num_job})
+        # vessl.log(step=e, payload={'mean weighted tardiness' : env.monitor.tardiness / env.num_job})
         print("episode: %d | reward: %.4f | tardiness: %.4f" % (e, r_epi, env.monitor.tardiness / env.num_job))
 
-        writer.add_scalar("Reward/Reward", r_epi, e)
+        # writer.add_scalar("Reward/Reward", r_epi, e)
         # writer.add_scalar("Performance/Q-Value", avg_q, e)
-        writer.add_scalar("Performance/Tardiness", env.monitor.tardiness / env.num_job, e)
+        # writer.add_scalar("Performance/Tardiness", env.monitor.tardiness / env.num_job, e)
 
     writer.close()
