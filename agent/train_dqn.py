@@ -108,4 +108,4 @@ if __name__ == "__main__":
         # writer.add_scalar("Performance/Q-Value", avg_q, e)
         # writer.add_scalar("Performance/Tardiness", env.monitor.tardiness / env.num_job, e)
 
-    writer.close()
+    # writer.close()
