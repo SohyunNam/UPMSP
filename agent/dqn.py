@@ -11,7 +11,6 @@ import torch.optim as optim
 
 
 # Hyperparameters
-learning_rate = 1e-5
 gamma = 0.99
 buffer_limit = 100000
 batch_size = 32
@@ -54,8 +53,6 @@ class Qnet(nn.Module):
         self.fc2 = nn.Linear(256, 128)
         self.fc3 = nn.Linear(128, 64)
         self.fc4 = nn.Linear(64, action_size)
-        
-        self.optimizer = optim.Adam(self.parameters(), lr=learning_rate)
 
     def forward(self, x):
         x = F.relu(self.fc1(x))
