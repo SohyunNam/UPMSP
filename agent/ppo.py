@@ -1,4 +1,4 @@
-# import vessl
+import vessl
 import os
 import torch
 import torch.nn as nn
@@ -7,19 +7,16 @@ import torch.optim as optim
 
 from torch.distributions import Categorical
 
-# from environment.data import *
-from environment.env import *
-
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-# vessl.init()
+vessl.init()
 
 # Hyperparameters
-learning_rate = 0.00001
+learning_rate = 1e-7
 gamma = 0.98
 lmbda = 0.95
 eps_clip = 0.1
 K_epoch = 5
-T_horizon = 100
+T_horizon = 50
 
 class PPO(nn.Module):
     def __init__(self, state_dim, action_dim):
