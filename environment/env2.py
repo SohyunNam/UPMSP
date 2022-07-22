@@ -51,7 +51,6 @@ class UPMSP:
 
             if len(self.sim_env._queue) == 0:
                 self.monitor.save_tracer()
-                print(self.monitor.filepath)
             self.sim_env.step()
 
         reward = self._calculate_reward()
