@@ -50,15 +50,17 @@ if __name__ == "__main__":
     score = 0
 
     step = 0
-    r_epi = 0
+    
+    print("Read Validation Set")
     validation_state = np.load('/input/validation_set2.npy')
+    print("Load Valiation Set Finish")
  
     for e in range(episode, episode + num_episode + 1):
         print("episode {0} starts".format(e))
         done = False
         step = 0
         state = env.reset()
-        r = list()
+        r_epi = 0
         loss = 0
         num_update = 0
 
