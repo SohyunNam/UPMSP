@@ -72,9 +72,11 @@ if __name__ == "__main__":
                     break
 
             model.train_net()
-        vessl.log(step=e, payload={'reward': r_epi, 'mean weighted tardiness': env.monitor.tardiness/env.num_job})
-        # vessl.log(step=e, payload={'mean weighted tardiness' : env.monitor.tardiness / env.num_job})
+           
         print("episode: %d | reward: %.4f | tardiness: %.4f" % (e, r_epi, env.monitor.tardiness / env.num_job))
+        vessl.log(step=e, payload={'reward': r_epi})
+        vessl.log(step=e, payload={'mean weighted tardiness' : env.monitor.tardiness / env.num_job})
+        
 
         # writer.add_scalar("Reward/Reward", r_epi, e)
         # writer.add_scalar("Performance/Q-Value", avg_q, e)
