@@ -2,7 +2,7 @@ import vessl
 import os
 import pandas as pd
 from dqn import *
-from environment.env import UPMSP
+from environment.env2 import UPMSP
 
 from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter('scalar/dqn')
@@ -13,21 +13,21 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 vessl.init()
 
 if __name__ == "__main__":
-    num_episode = 100000
+    num_episode = 40000
     episode = 1
 
     score_avg = 0
 
-    state_size = 104
+    state_size = 22
     action_size = 4  # Select No action 포함
 
     # log_path = '../result/model/dqn'
-    log_path = '/output/model/ppo'
+    log_path = '/output/model/dqn2'
     if not os.path.exists(log_path):
         os.makedirs(log_path)
 
     # event_path = '../environment/result'
-    event_path = '/output/event/ppo'
+    event_path = '/output/event/dqn2'
     if not os.path.exists(event_path):
         os.makedirs(event_path)
 
@@ -100,7 +100,9 @@ if __name__ == "__main__":
         avg_q = np.mean(out)
         
         print("episode: %d | reward: %.4f" % (e, r_epi))
-        vessl.log(step=e, payload={'reward': sum(r), 'Q-Value': avg_q, 'mean weighted tardiness': env.monitor.tardiness / env.num_jobs})
+        vessl.log(step=e, payload={'reward': sum(r)})
+        vessl.log(step=e, payload={'Q-Value': avg_q})
+        vessl.log(step=e, payload={'mean weighted tardiness': env.monitor.tardiness / env.num_jobs})
         
         # writer.add_scalar("Reward/Reward", sum(r), e)
         # writer.add_scalar("Performance/Q-Value", avg_q, e)
