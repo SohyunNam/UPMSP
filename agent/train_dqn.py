@@ -99,7 +99,7 @@ if __name__ == "__main__":
         avg_q = np.mean(out)
         
         print("episode: %d | reward: %.4f" % (e, r_epi))
-        vessl.log(step=e, payload={'reward': sum(r), 'mean weighted tardiness': env.monitor.tardiness / env.num_jobs})
+        vessl.log(step=e, payload={'reward': sum(r), 'Q-Value': avg_q, 'mean weighted tardiness': env.monitor.tardiness / env.num_jobs})
         
         # writer.add_scalar("Reward/Reward", sum(r), e)
         # writer.add_scalar("Performance/Q-Value", avg_q, e)
