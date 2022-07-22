@@ -11,7 +11,7 @@ device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cp
 vessl.init()
 
 if __name__ == "__main__":
-    num_episode = 100000
+    num_episode = 40000
     episode = 1
 
     score_avg = 0
