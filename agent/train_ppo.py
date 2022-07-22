@@ -4,7 +4,7 @@ from ppo import *
 from environment.env2 import UPMSP
 
 from torch.utils.tensorboard import SummaryWriter
-writer = SummaryWriter('/output/scalar/ppo')
+# writer = SummaryWriter('/output/scalar/ppo')
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
@@ -82,4 +82,4 @@ if __name__ == "__main__":
         # writer.add_scalar("Performance/Q-Value", avg_q, e)
         # writer.add_scalar("Performance/Tardiness", env.monitor.tardiness / env.num_job, e)
 
-    writer.close()
+    # writer.close()
