@@ -1,3 +1,4 @@
+import numpy as np
 from environment.simulation import *
 
 # np.random.seed(10)
