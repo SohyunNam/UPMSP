@@ -1,10 +1,10 @@
 import vessl
-import os
+# import os
 import pandas as pd
-from dqn import *
+from agent.dqn import *
 from environment.env2 import UPMSP
 
-from torch.utils.tensorboard import SummaryWriter
+# from torch.utils.tensorboard import SummaryWriter
 # writer = SummaryWriter('scalar/dqn')
 # writer = SummaryWriter('/output/scalar/ppo')
 
@@ -19,7 +19,7 @@ if __name__ == "__main__":
     score_avg = 0
 
     state_size = 22
-    action_size = 4  # Select No action 포함
+    action_size = 4
 
     # log_path = '../result/model/dqn'
     log_path = '/output/model/dqn2'
@@ -51,9 +51,11 @@ if __name__ == "__main__":
     score = 0
 
     step = 0
-    moving_average = list()
-
+    
+    validation_state = np.load('/input/validation_set2.npy')
+ 
     for e in range(episode, episode + num_episode + 1):
+        print("episode {0} starts".format(e))
         done = False
         step = 0
         state = env.reset()
@@ -84,6 +86,7 @@ if __name__ == "__main__":
                 q_target.load_state_dict(q.state_dict())
 
             if done:
+                print("episode %d is finished" %(e))
                 if e % 100 == 0:
                     torch.save({'episode': e,
                                 'model_state_dict': q_target.state_dict(),
@@ -92,14 +95,15 @@ if __name__ == "__main__":
                     print('save model...')
 
                 break
-
+        
+        print("Start Calculate Q Value")
         q.eval()
-        validation_state = np.load('/input/validation_set2.npy')
         out = q(torch.from_numpy(validation_state).float().to(device)).cpu().detach().numpy()
         out = np.max(out, axis=1)
         avg_q = np.mean(out)
         
-        print("episode: %d | reward: %.4f" % (e, r_epi))
+        print("episode: %d | reward: %.4f | Q-value: %.4f" % (e, r_epi, avg_q))
+        
         vessl.log(step=e, payload={'reward': sum(r)})
         vessl.log(step=e, payload={'Q-Value': avg_q})
         vessl.log(step=e, payload={'mean weighted tardiness': env.monitor.tardiness / env.num_jobs})
