@@ -36,7 +36,6 @@ if __name__ == "__main__":
     env = UPMSP(log_dir=event_path)
     q = Qnet(state_size, action_size).to(device)
     q_target = Qnet(state_size, action_size).to(device)
-    optimizer = optim.Adam(q.parameters(), lr=1e-5, eps=1e-06)
 
     if load_model:
         ckpt = torch.load(log_path + "/episode28000.pt")
@@ -51,7 +50,7 @@ if __name__ == "__main__":
     score = 0
 
     step = 0
-    
+    r_epi = 0
     validation_state = np.load('/input/validation_set2.npy')
  
     for e in range(episode, episode + num_episode + 1):
@@ -72,7 +71,7 @@ if __name__ == "__main__":
 
             # 환경과 연결
             next_state, reward, done = env.step(action)
-            r.append(reward)
+            r_epi += reward
 
             memory.put((state, action, reward, next_state, done))
 
@@ -104,7 +103,7 @@ if __name__ == "__main__":
         
         print("episode: %d | reward: %.4f | Q-value: %.4f" % (e, r_epi, avg_q))
         
-        vessl.log(step=e, payload={'reward': sum(r)})
+        vessl.log(step=e, payload={'reward': r_epi})
         vessl.log(step=e, payload={'Q-Value': avg_q})
         vessl.log(step=e, payload={'mean weighted tardiness': env.monitor.tardiness / env.num_jobs})
         
