@@ -1,6 +1,7 @@
 import vessl
 # import os
 import pandas as pd
+import torch.optim as optim
 from agent.dqn import *
 from environment.env2 import UPMSP
 
@@ -11,6 +12,10 @@ from environment.env2 import UPMSP
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
 vessl.init()
+
+# Hyperparameter
+learning_rate = 1e-5
+
 
 if __name__ == "__main__":
     num_episode = 40000
@@ -36,6 +41,7 @@ if __name__ == "__main__":
     env = UPMSP(log_dir=event_path)
     q = Qnet(state_size, action_size).to(device)
     q_target = Qnet(state_size, action_size).to(device)
+    optimizer = optim.Adam(q.parameters(), lr=learning_rate)
 
     if load_model:
         ckpt = torch.load(log_path + "/episode28000.pt")
