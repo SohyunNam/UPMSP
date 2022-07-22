@@ -10,6 +10,7 @@ from torch.utils.tensorboard import SummaryWriter
 
 device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
 
+vessl.init()
 
 if __name__ == "__main__":
     num_episode = 100000
